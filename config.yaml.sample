@@ -1,0 +1,70 @@
+receivers:
+  tfeawscloudwatchmetricsreceiver:
+    region: us-west-2
+    poll_interval: 30s
+    metrics:
+      named:
+      - namespace: AWS/EC2
+        metric_name: "CPUUtilization"
+        aws_aggregation: Average
+        dimensions:
+          - Name: InstanceId
+            Value: "*"
+      - namespace: AWS/ElastiCache
+        metric_name: CPUUtilization
+        aws_aggregation: Average
+        dimensions:
+          - Name: CacheNodeId
+            Value: "*"
+      - namespace: AWS/RDS
+        metric_name: CPUUtilization
+        aws_aggregation: Average
+        dimensions:
+          - Name: DBInstanceIdentifier
+            Value: "*"
+#        aws_aggregation: average
+      - namespace: AWS/ApplicationELB
+        metric_name: RequestCount
+        aws_aggregation: Average
+        dimensions:
+          - Name: LoadBalancer
+            Value: "*"
+  
+  # otlp:
+  #   protocols:
+  #     grpc:
+  #       endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+  attributes:
+    actions:
+      - key: service.name
+        value: "aws-cloudwatch-metrics"
+        action: upsert
+      - key: account_name
+        value: "yakul_garg"
+        action: upsert
+
+exporters:
+  # NOTE: Prior to v0.86.0 use `logging` instead of `debug`.
+  # debug:
+  #   verbosity: detailed
+  datadog:
+    api:
+      key: <YOUR_DATADOG_API_KEY>
+      site: "datadoghq.com"
+  # otlp/jaeger:
+  #   endpoint: localhost:14317
+  #   tls:
+  #     insecure: true
+
+service:
+  pipelines:
+    metrics/tfe:
+      receivers: [tfeawscloudwatchmetricsreceiver]
+      processors: [batch, attributes]
+      exporters: [ datadog]
+  # telemetry:
+  #   logs:
+  #     level: debug
