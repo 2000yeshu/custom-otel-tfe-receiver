@@ -1,6 +1,9 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
+// TODO: Add more validations related to the  namespaces
+// and metrics for that namespaces and dimensions for those metrics allowed
+
 package awscloudwatchmetricsreceiver // import "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/awscloudwatchmetricsreceiver"
 
 import (
@@ -12,6 +15,7 @@ import (
 )
 
 var defaultPollInterval = 5 * time.Minute
+var defaultPeriod = 60 * time.Second
 
 // Config is the overall config structure for the awscloudwatchmetricsreceiver
 type Config struct {
@@ -37,21 +41,25 @@ type MetricsConfig struct {
 // NamesConfig is the configuration for the metric namespace and metric names
 // https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_concepts.html
 type NamedConfig struct {
-	Namespace      string                   `mapstructure:"namespace"`
-	MetricName     string                   `mapstructure:"metric_name"`
-	Period         time.Duration            `mapstructure:"period"`
-	AwsAggregation string                   `mapstructure:"aws_aggregation"`
-	Dimensions     []MetricDimensionsConfig `mapstructure:"dimensions"`
+	// Namespace  string `mapstructure:"namespace"`
+	Type        string   `mapstructure:"type"`
+	MetricNames []string `mapstructure:"metric_names"`
+	ARN         string   `mapstructure:"arn"`
+
+	// Defaults to 60 seconds
+	Period         time.Duration `mapstructure:"period"`
+	AwsAggregation string        `mapstructure:"aws_aggregation"`
+	// Dimensions     []MetricDimensionsConfig `mapstructure:"dimensions"`
 }
 
 // MetricDimensionConfig is the configuration for the metric dimensions
-type MetricDimensionsConfig struct {
-	Name  string `mapstructure:"Name"`
-	Value string `mapstructure:"Value"`
+// type MetricDimensionsConfig struct {
+// 	Name  string `mapstructure:"Name"`
+// 	Value string `mapstructure:"Value"`
 
-	// prevent unkeyed literal initialization
-	_ struct{}
-}
+// 	// prevent unkeyed literal initialization
+// 	_ struct{}
+// }
 
 var (
 	errNoMetricsConfigured   = errors.New("no metrics configured")
@@ -62,6 +70,7 @@ var (
 	// https://docs.aws.amazon.com/cli/latest/reference/cloudwatch/get-metric-data.html
 	errEmptyDimensions      = errors.New("dimensions name and value is empty")
 	errTooManyDimensions    = errors.New("you cannot define more than 30 dimensions for a metric")
+	errInvalidPeriod        = errors.New("period must be between 60 and 21600 seconds, inclusive")
 	errDimensionColonPrefix = errors.New("dimension name cannot start with a colon")
 
 	errInvalidAwsAggregation = errors.New("invalid AWS aggregation")
@@ -106,17 +115,16 @@ func (cfg *Config) validateDimensionsConfig() error {
 
 	metricsNames := cfg.Metrics.Names
 	for _, name := range metricsNames {
-		if name.Namespace == "" {
+		if name.Type == "" {
 			return errNoNamespaceConfigured
 		}
 		err := validateAwsAggregation(name.AwsAggregation)
 		if err != nil {
 			return err
 		}
-		if name.MetricName == "" {
+		if len(name.MetricNames) == 0 {
 			return errNoMetricsConfigured
 		}
-		errs = errors.Join(errs, validate(name.Dimensions))
 	}
 	return errs
 }
@@ -149,19 +157,4 @@ func validateAwsAggregation(agg string) error {
 	default:
 		return errInvalidAwsAggregation
 	}
-}
-
-func validate(nmd []MetricDimensionsConfig) error {
-	for _, dimensionConfig := range nmd {
-		if dimensionConfig.Name == "" || dimensionConfig.Value == "" {
-			return errEmptyDimensions
-		}
-		if strings.HasPrefix(dimensionConfig.Name, ":") {
-			return errDimensionColonPrefix
-		}
-	}
-	if len(nmd) > 30 {
-		return errTooManyDimensions
-	}
-	return nil
 }

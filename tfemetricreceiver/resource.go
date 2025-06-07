@@ -1,15 +1,47 @@
 package awscloudwatchmetricsreceiver
 
 import (
+	"fmt"
+
 	"go.opentelemetry.io/collector/pdata/pcommon"
 )
+
+func getEbsResource(tm EBSMetadata) pcommon.Resource {
+	resource := pcommon.NewResource()
+
+	// Set volume id
+	resource.Attributes().PutStr(attributeEBSVolumeId, tm.VolumeID)
+
+	return resource
+}
+
+func getRDSResource(tm RDSMetadata) pcommon.Resource {
+	resource := pcommon.NewResource()
+
+	// Set cluster id
+	resource.Attributes().PutStr(attributeDBInstanceIdentifier, tm.DBInstanceIdentifier)
+	resource.Attributes().PutStr(attributeAvailibilityZone, tm.AvailabilityZone)
+
+	return resource
+}
+
+func getElastiCacheResource(tm ElastiCacheMetadata) pcommon.Resource {
+	resource := pcommon.NewResource()
+
+	// Set cluster id
+	resource.Attributes().PutStr(attributeElastiCacheClusterId, tm.ClusterID)
+
+	return resource
+}
 
 func getEc2Resource(tm EC2Metadata) pcommon.Resource {
 
 	resource := pcommon.NewResource()
-
+	fmt.Println("getEc2Resource called with EC2Metadata:", tm.InstanceID)
 	// Set instance id
+
 	resource.Attributes().PutStr(attributeEc2InstanceId, tm.InstanceID)
+
 	// region, accountID, taskID := getResourceFromARN(tm.TaskARN)
 	// resource.Attributes().PutStr(attributeECSCluster, getNameFromCluster(tm.Cluster))
 	// resource.Attributes().PutStr(string(conventions.AWSECSTaskARNKey), tm.TaskARN)

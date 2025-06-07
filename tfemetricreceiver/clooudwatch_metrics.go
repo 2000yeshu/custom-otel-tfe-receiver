@@ -1,5 +1,6 @@
 package awscloudwatchmetricsreceiver
 
 type CloudWatchMetrics struct {
-	CPUUtilized float64
+	GaugeMetricValue float64
+	CountMetricValue float64
 }

@@ -1,6 +1,8 @@
 package awscloudwatchmetricsreceiver
 
 import (
+	"fmt"
+
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 
@@ -11,18 +13,62 @@ type metricDataAccumulator struct {
 	mds []pmetric.Metrics
 }
 
-func (acc *metricDataAccumulator) getMetricsData(ec2Stats *EC2Stats, metadata EC2Metadata, _ *zap.Logger) {
-	cloudwatchMetric := CloudWatchMetrics{}
-	ec2Resource := getEc2Resource(metadata)
+func (acc *metricDataAccumulator) getMetricsData(cfmetrics *TFECloudwatchMetrics, _ *zap.Logger) {
+	// cloudwatchMetric := CloudWatchMetrics{}
 
-	lengthOfDataPoints := len(ec2Stats.CPUUtilized)
+	// ec2Resource := getEc2Resource(cfmetrics.EC2Metadata)
 
-	for idx := range lengthOfDataPoints {
-		timestamp := pcommon.NewTimestampFromTime(ec2Stats.Timestamps[idx])
-		cloudwatchMetric.CPUUtilized = ec2Stats.CPUUtilized[idx]
-		acc.accumulate(convertToOTLPMetrics(ec2Prefix, cloudwatchMetric, ec2Resource, timestamp))
+	for _, rdsinstance := range cfmetrics.RDSStats {
+		// Tag resource with this particular RDS instance metadata
+		rdsResource := getRDSResource(rdsinstance.RDSMetadata)
+		fmt.Println("length of cpuutil data points:", len(rdsinstance.MetricsData[RDSInstanceCPUUtilization]))
+		for _, metricData := range rdsinstance.MetricsData[RDSInstanceCPUUtilization] {
+			timestamp := pcommon.NewTimestampFromTime(metricData.Timestamp)
+			acc.accumulate(convertToOTLPMetrics(rdsPrefix+attributeCPUUtilized, metricData.Value, rdsResource, timestamp))
+		}
+
+		fmt.Println("length of network throughput data points:", len(rdsinstance.MetricsData[RDSInstanceNetworkThroughput]))
+		for _, metricData := range rdsinstance.MetricsData[RDSInstanceNetworkThroughput] {
+			timestamp := pcommon.NewTimestampFromTime(metricData.Timestamp)
+			acc.accumulate(convertToOTLPMetrics(rdsPrefix+attributeNetworkThroughput, metricData.Value, rdsResource, timestamp))
+		}
+
+		fmt.Println("length of write throughput data points:", len(rdsinstance.MetricsData[RDSInstanceWriteThroughput]))
+		for _, metricData := range rdsinstance.MetricsData[RDSInstanceWriteThroughput] {
+			timestamp := pcommon.NewTimestampFromTime(metricData.Timestamp)
+			acc.accumulate(convertToOTLPMetrics(rdsPrefix+attributeWriteThroughput, metricData.Value, rdsResource, timestamp))
+		}
+
+		fmt.Println("length of read throughput data points:", len(rdsinstance.MetricsData[RDSInstanceReadThroughput]))
+		for _, metricData := range rdsinstance.MetricsData[RDSInstanceReadThroughput] {
+			timestamp := pcommon.NewTimestampFromTime(metricData.Timestamp)
+			acc.accumulate(convertToOTLPMetrics(rdsPrefix+attributeReadThroughput, metricData.Value, rdsResource, timestamp))
+		}
+
 	}
+	// elastiCacheResource := getElastiCacheResource(cfmetrics.ElastiCacheMetadata)
+	// ebsResource := getEbsResource(cfmetrics.EBSMetadata)
 
+	// lengthOfEC2DataPoints := len(cfmetrics.EC2Stats)
+	// for idx := range lengthOfEC2DataPoints {
+	// 	timestamp := pcommon.NewTimestampFromTime(cfmetrics.EC2Stats[idx].Timestamps)
+	// 	cloudwatchMetric.GaugeMetricValue = cfmetrics.EC2Stats[idx].CPUUtilized
+	// 	acc.accumulate(convertToOTLPMetrics(ec2Prefix, cloudwatchMetric, ec2Resource, timestamp))
+	// }
+
+	// lengthOfElastiCacheDataPoints := len(cfmetrics.ElastiCacheStats)
+	// for idx := range lengthOfElastiCacheDataPoints {
+	// 	timestamp := pcommon.NewTimestampFromTime(cfmetrics.ElastiCacheStats[idx].Timestamps)
+	// 	cloudwatchMetric.GaugeMetricValue = cfmetrics.ElastiCacheStats[idx].CPUUtilized
+	// 	acc.accumulate(convertToOTLPMetrics(elastiCachePrefix, cloudwatchMetric, elastiCacheResource, timestamp))
+	// }
+
+	// lengthOfEBSDataPoints := len(cfmetrics.EBSStats)
+	// for idx := range lengthOfEBSDataPoints {
+	// 	timestamp := pcommon.NewTimestampFromTime(cfmetrics.EBSStats[idx].Timestamps)
+	// 	cloudwatchMetric.GaugeMetricValue = cfmetrics.EBSStats[idx].VolumeWriteBytes
+	// 	acc.accumulate(convertToOTLPMetrics(ebsPrefix, cloudwatchMetric, ebsResource, timestamp))
+	// }
 }
 
 func (acc *metricDataAccumulator) accumulate(md pmetric.Metrics) {

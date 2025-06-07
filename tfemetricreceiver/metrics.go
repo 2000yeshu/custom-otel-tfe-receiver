@@ -5,9 +5,9 @@ import (
 	"go.uber.org/zap"
 )
 
-func MetricsData(ec2Stats *EC2Stats, metadata EC2Metadata, logger *zap.Logger) []pmetric.Metrics {
+func MetricsData(cfmetrics *TFECloudwatchMetrics, logger *zap.Logger) []pmetric.Metrics {
 	acc := &metricDataAccumulator{}
-	acc.getMetricsData(ec2Stats, metadata, logger)
+	acc.getMetricsData(cfmetrics, logger)
 
 	return acc.mds
 }

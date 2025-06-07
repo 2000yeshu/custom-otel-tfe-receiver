@@ -6,23 +6,29 @@ import (
 	conventions "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
-func convertToOTLPMetrics(prefix string, m CloudWatchMetrics, r pcommon.Resource, timestamp pcommon.Timestamp) pmetric.Metrics {
+func convertToOTLPMetrics(prefix string, value float64, r pcommon.Resource, timestamp pcommon.Timestamp) pmetric.Metrics {
 	md := pmetric.NewMetrics()
 	rm := md.ResourceMetrics().AppendEmpty()
+
 	rm.SetSchemaUrl(conventions.SchemaURL)
 	r.CopyTo(rm.Resource())
 
 	ilms := rm.ScopeMetrics()
 
-	appendDoubleGauge(prefix+attributeCPUUtilized, unitNone, m.CPUUtilized, timestamp, ilms.AppendEmpty())
+	appendDoubleGauge(prefix, unitNone, value, timestamp, ilms.AppendEmpty(), rm.Resource().Attributes().AsRaw())
 
 	return md
 }
 
-func appendDoubleGauge(metricName, unit string, value float64, ts pcommon.Timestamp, ilm pmetric.ScopeMetrics) {
+func appendDoubleGauge(metricName, unit string, value float64, ts pcommon.Timestamp, ilm pmetric.ScopeMetrics, tags map[string]any) {
 	metric := appendMetric(ilm, metricName, unit)
 	gauge := metric.SetEmptyGauge()
 	dp := gauge.DataPoints().AppendEmpty()
+
+	for k, v := range tags {
+		dp.Attributes().PutStr(k, v.(string))
+	}
+
 	dp.SetDoubleValue(value)
 	dp.SetTimestamp(ts)
 }
