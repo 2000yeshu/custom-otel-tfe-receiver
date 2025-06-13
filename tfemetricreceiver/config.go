@@ -41,25 +41,26 @@ type MetricsConfig struct {
 // NamesConfig is the configuration for the metric namespace and metric names
 // https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_concepts.html
 type NamedConfig struct {
-	// Namespace  string `mapstructure:"namespace"`
+	Namespace   string   `mapstructure:"namespace"`
+	Prefix      string   `mapstructure:"prefix"`
 	Type        string   `mapstructure:"type"`
 	MetricNames []string `mapstructure:"metric_names"`
 	ARN         string   `mapstructure:"arn"`
 
 	// Defaults to 60 seconds
-	Period         time.Duration `mapstructure:"period"`
-	AwsAggregation string        `mapstructure:"aws_aggregation"`
-	// Dimensions     []MetricDimensionsConfig `mapstructure:"dimensions"`
+	Period         time.Duration            `mapstructure:"period"`
+	AwsAggregation string                   `mapstructure:"aws_aggregation"`
+	Dimensions     []MetricDimensionsConfig `mapstructure:"dimensions"`
 }
 
 // MetricDimensionConfig is the configuration for the metric dimensions
-// type MetricDimensionsConfig struct {
-// 	Name  string `mapstructure:"Name"`
-// 	Value string `mapstructure:"Value"`
+type MetricDimensionsConfig struct {
+	Name  string `mapstructure:"Name"`
+	Value string `mapstructure:"Value"`
 
-// 	// prevent unkeyed literal initialization
-// 	_ struct{}
-// }
+	// prevent unkeyed literal initialization
+	_ struct{}
+}
 
 var (
 	errNoMetricsConfigured   = errors.New("no metrics configured")
@@ -115,9 +116,9 @@ func (cfg *Config) validateDimensionsConfig() error {
 
 	metricsNames := cfg.Metrics.Names
 	for _, name := range metricsNames {
-		if name.Type == "" {
-			return errNoNamespaceConfigured
-		}
+		// if name.Type == "" {
+		// 	return errNoNamespaceConfigured
+		// }
 		err := validateAwsAggregation(name.AwsAggregation)
 		if err != nil {
 			return err

@@ -7,7 +7,7 @@ import (
 
 func MetricsData(cfmetrics *TFECloudwatchMetrics, logger *zap.Logger) []pmetric.Metrics {
 	acc := &metricDataAccumulator{}
-	acc.getMetricsData(cfmetrics, logger)
-
+	// acc.getMetricsData(cfmetrics, logger)
+	acc.getMetricsDataUsingDimensions(cfmetrics, logger)
 	return acc.mds
 }

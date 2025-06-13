@@ -1,6 +1,10 @@
 package awscloudwatchmetricsreceiver
 
-import "time"
+import (
+	"time"
+
+	cloudwatchtypes "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+)
 
 type EBSStats struct {
 	VolumeWriteBytes float64   `json:"volume_write_bytes"`
@@ -64,6 +68,14 @@ const (
 	ebsNamespace         = "AWS/EBS"
 )
 
+type DimensionBasedMetric struct {
+	Prefix string `json:"prefix"` // e.g., "vm1", "db", "cache", "storage"
+	Key    string `json:"key"`    // Dimension key, e.g., "InstanceId"
+	Value  string `json:"value"`  // Dimension value, e.g., "i-1234567890abcdef0"
+	// key is metric name, value is MetricDataResult
+	MetricValues map[string]cloudwatchtypes.MetricDataResult
+}
+
 type TFECloudwatchMetrics struct {
 	EC2Stats            []EC2Stats          `json:"ec2_stats"`
 	EC2Metadata         EC2Metadata         `json:"ec2_metadata"`
@@ -77,4 +89,7 @@ type TFECloudwatchMetrics struct {
 
 	EBSStats    []EBSStats  `json:"ebs_stats"`
 	EBSMetadata EBSMetadata `json:"ebs_metadata"`
+
+	// MetricName, Dimension Key, Dimension Value,
+	DimensionBasedMetric []*DimensionBasedMetric `json:"dimension_based_metric"`
 }

@@ -13,6 +13,26 @@ type metricDataAccumulator struct {
 	mds []pmetric.Metrics
 }
 
+func (acc *metricDataAccumulator) getMetricsDataUsingDimensions(cfmetrics *TFECloudwatchMetrics, _ *zap.Logger) {
+
+	for _, dimBasedMetric := range cfmetrics.DimensionBasedMetric {
+		fmt.Println("Processing dimension-based metric:", dimBasedMetric.Key, "with value:", dimBasedMetric.Value)
+		resource := getResourceFromDimensions(dimBasedMetric.Key, dimBasedMetric.Value)
+		for metricKey, metricData := range dimBasedMetric.MetricValues {
+
+			for idx, metricValue := range metricData.Values {
+				timestamp := pcommon.NewTimestampFromTime(metricData.Timestamps[idx])
+
+				acc.accumulate(convertToOTLPMetrics(dimBasedMetric.Prefix+metricKey, metricValue, resource, timestamp))
+				fmt.Println("Accumulated metric:", dimBasedMetric.Prefix+metricKey, "with value:", metricValue, "at timestamp:", metricData.Timestamps[idx])
+			}
+
+		}
+
+	}
+
+}
+
 func (acc *metricDataAccumulator) getMetricsData(cfmetrics *TFECloudwatchMetrics, _ *zap.Logger) {
 	// cloudwatchMetric := CloudWatchMetrics{}
 

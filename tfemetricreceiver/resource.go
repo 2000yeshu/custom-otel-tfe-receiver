@@ -6,6 +6,15 @@ import (
 	"go.opentelemetry.io/collector/pdata/pcommon"
 )
 
+func getResourceFromDimensions(name, value string) pcommon.Resource {
+	resource := pcommon.NewResource()
+
+	// Set volume id
+	resource.Attributes().PutStr(name, value)
+
+	return resource
+}
+
 func getEbsResource(tm EBSMetadata) pcommon.Resource {
 	resource := pcommon.NewResource()
 

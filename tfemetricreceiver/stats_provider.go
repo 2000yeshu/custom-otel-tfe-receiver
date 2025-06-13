@@ -34,6 +34,26 @@ func NewStatsProvider(region string, config *Config, cw *cloudwatch.Client, rds 
 func (sp *StatsProvider) getMetricsFromARN(ctx context.Context, cloudwatchMetrics *TFECloudwatchMetrics, nameConfig *NamedConfig) error {
 	switch nameConfig.Type {
 	case rdsResource:
+		out, _ := sp.cw.ListMetrics(ctx, &cloudwatch.ListMetricsInput{
+			Namespace:  aws.String(elastiCacheNamespace),
+			MetricName: aws.String("CPUUtilization"),
+			// Dimensions: []cloudwatchtypes.DimensionFilter{
+			// 	{
+			// 		Name:  aws.String("DBInstanceIdentifier"),
+			// 		Value: aws.String("sandbox-tfe-rds-cluster-instance-0"),
+			// 	},
+			// },
+		})
+
+		for idx, metric := range out.Metrics {
+			for _, dim := range metric.Dimensions {
+				fmt.Println("Metric:", *metric.MetricName, "idx:", idx, "Dimension:", *dim.Name, "Value:", *dim.Value)
+			}
+			// metric.MetricName
+		}
+
+		//#####################################//
+
 		// ARN format: arn:aws:rds:region:account-id:cluster:db-cluster-identifier
 		parts := strings.Split(nameConfig.ARN, ":")
 		if len(parts) != 7 {
@@ -162,10 +182,15 @@ func (sp *StatsProvider) fetchCloudwatchMetrics(ctx context.Context) error {
 			names.Period = defaultPeriod
 		}
 
-		err := sp.getMetricsFromARN(ctx, sp.cloudwatchMetrics, names)
+		err := sp.getMetrics(ctx, sp.cloudwatchMetrics, names)
 		if err != nil {
 			return err
 		}
+
+		// err := sp.getMetricsFromARN(ctx, sp.cloudwatchMetrics, names)
+		// if err != nil {
+		// 	return err
+		// }
 	}
 
 	return nil
